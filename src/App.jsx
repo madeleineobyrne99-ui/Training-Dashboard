@@ -35,7 +35,7 @@ const DAYS = [
     id: 'sunday',
     short: 'SUN',
     full: 'Sunday',
-    title: 'Chest, Shoulders + Pull-up Skill',
+    title: 'Push Day + Pull-up Skill',
     equipment: ['Dumbbells', 'Cable machine', 'Pull-up bar', 'Resistance bands'],
     note: 'Own the eccentric on the pull-up negatives — that’s where the strength gets built, not the top.',
     calisthenics: [
@@ -226,112 +226,7 @@ const DAYS = [
     id: 'tuesday',
     short: 'TUE',
     full: 'Tuesday',
-    title: 'Biceps and Shoulders',
-    equipment: ['Dumbbells', 'Cable machine'],
-    note: 'Curls are a wrist-heavy day — check in with the flag below before you load up.',
-    sections: [
-      {
-        title: 'Superset 1',
-        meta: '2 sets to near failure, 30 sec active rest',
-        items: [
-          w('Incline dumbbell curl', '8-12 reps · Current 17.5lbs · Next 20lbs', 'Incline hammer curl (neutral grip)', '8-12 reps · Current 17.5lbs · Next 20lbs, neutral wrist'),
-          ex('Lateral raise', '10-12 reps · Current 12.5lbs · Next 15lbs'),
-          rest('20 high knees'),
-        ],
-      },
-      {
-        title: 'Superset 2',
-        meta: '2 sets to near failure, 30 sec active rest',
-        items: [
-          w('Hammer curl', '8-12 reps · Current 17.5lbs · Next 20lbs', null, null),
-          ex('Arnold press', '8-10 reps · Current 20lbs · Next 22.5lbs'),
-          rest('Jump rope 30 sec'),
-        ],
-      },
-      {
-        title: 'Superset 3',
-        meta: '2 sets to near failure, 30 sec active rest',
-        items: [
-          w('Concentration curl', '10 reps each side', null, null),
-          ex('Front raise', '10-12 reps · Current 10lbs'),
-          rest('20 high knees'),
-        ],
-      },
-      {
-        title: 'Handstand Skill',
-        items: [
-          ex('Wrist warm-up', '2 min'),
-          w('Dolphin pose', '3x30 sec', null, null),
-          w('Pike walk-outs', '3x10', 'Plank walk-outs on forearms', '3x10'),
-          w('Crow pose attempts', '5x10 sec hold', null, null),
-          w('Wall kick-ups', '5x10 sec hold', null, null),
-        ],
-      },
-      {
-        title: 'Core — Six Pack Focus',
-        items: [
-          ex('Bicycle crunch', '3x20 each side, slow'),
-          w('Lying leg raise', '3x15', null, null),
-          ex('Reverse crunch', '3x15'),
-          w('Plank shoulder taps', '3x15 each side', 'Forearm plank shoulder taps', '3x15 each side, on forearms'),
-        ],
-      },
-      {
-        title: 'Splits Mobility',
-        meta: '5 min',
-        items: [
-          ex('Hip flexor kneeling stretch', '60 sec each side'),
-          ex('Figure four stretch', '60 sec each side'),
-          ex('Standing quad stretch', '30 sec each side'),
-        ],
-      },
-    ],
-  },
-  {
-    id: 'wednesday',
-    short: 'WED',
-    full: 'Wednesday',
-    title: 'Nike Run Club + Cardio',
-    equipment: ['Running shoes', 'HR monitor'],
-    note: 'No lifting. Protect the legs for the run — every uphill gets walked, no negotiating.',
-    isCardio: true,
-    sections: [
-      {
-        title: 'Morning',
-        meta: 'Optional',
-        items: [
-          ex('Easy incline walk or steps only', '20 min'),
-          ex('Heart rate', 'Stays relaxed, no intensity'),
-        ],
-      },
-      {
-        title: 'Evening — Nike Run Club',
-        items: [
-          ex('Group run', '5k'),
-          ex('Zone 2 ceiling', '138 bpm strict'),
-          ex('Cadence target', '150-155 spm'),
-          ex('Uphills', 'Walk every one, no negotiating'),
-          ex('Surges', 'None — honour every HR alert'),
-        ],
-      },
-      {
-        title: 'Flexibility',
-        meta: 'Post-run',
-        items: [
-          ex('Sun salutation A', 'x3'),
-          ex('Pigeon pose', '90 sec each side'),
-          ex('Seated forward fold', '90 sec'),
-          ex('Supine hamstring stretch', 'Each side'),
-          ex('Butterfly stretch', '60 sec'),
-        ],
-      },
-    ],
-  },
-  {
-    id: 'thursday',
-    short: 'THU',
-    full: 'Thursday',
-    title: 'Back and Lats + Pull-up Skill',
+    title: 'Pull Day + Pull-up Skill',
     equipment: ['Barbell', 'Dumbbells', 'Cable machine', 'Pull-up bar'],
     note: 'Deadlift day feeds the pull-up block — grip is already primed, don’t waste it warming up twice.',
     calisthenics: [
@@ -380,8 +275,17 @@ const DAYS = [
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
           ex('Face pulls', '10-12 reps · Current 80lbs · Next 85lbs'),
-          w('Scapular pull-ups', '3x10', 'Scapular shrugs (banded)', '3x10, standing, band anchored high'),
+          w('Incline dumbbell curl', '8-12 reps · Current 17.5lbs · Next 20lbs', 'Incline hammer curl (neutral grip)', '8-12 reps · Current 17.5lbs · Next 20lbs, neutral wrist'),
           rest('20 high knees'),
+        ],
+      },
+      {
+        title: 'Superset 4',
+        meta: '2 sets to near failure, 30 sec active rest',
+        items: [
+          w('Hammer curl', '8-12 reps · Current 17.5lbs · Next 20lbs', null, null),
+          ex('Cable row', '5-8 reps · Current 100lbs · Next 105lbs'),
+          rest('Jump rope 30 sec'),
         ],
       },
       {
@@ -393,6 +297,15 @@ const DAYS = [
           w('Scapular pull-ups', '3x10', 'Scapular shrugs (banded)', '3x10'),
           w('Isometric top hold + negative', '5 reps', 'Band-assisted top hold', '3-5 sec hold only, skip loaded negative'),
           w('Assisted pull-ups', '75lbs assist · Target 5 reps both sets', 'Lat pulldown', '75% bodyweight equivalent · Target 5 reps both sets'),
+        ],
+      },
+      {
+        title: 'Handstand Skill',
+        items: [
+          w('Dolphin pose', '3x30 sec', null, null),
+          w('Pike walk-outs', '3x10', 'Plank walk-outs on forearms', '3x10'),
+          w('Crow pose attempts', '5x10 sec hold', null, null),
+          w('Wall kick-ups', '5x10 sec hold', null, null),
         ],
       },
       {
@@ -411,6 +324,84 @@ const DAYS = [
           ex('Half split hold', '45 sec each side'),
           ex('Active hamstring swings', '20 each side'),
           ex('Deep squat hold', '60 sec'),
+        ],
+      },
+    ],
+  },
+  {
+    id: 'wednesday',
+    short: 'WED',
+    full: 'Wednesday',
+    title: 'Nike Run Club + Cardio',
+    equipment: ['Running shoes', 'HR monitor'],
+    note: 'No lifting. Protect the legs for the run — every uphill gets walked, no negotiating.',
+    isCardio: true,
+    sections: [
+      {
+        title: 'Morning',
+        meta: 'Optional',
+        items: [
+          ex('Easy incline walk or steps only', '20 min'),
+          ex('Heart rate', 'Stays relaxed, no intensity'),
+        ],
+      },
+      {
+        title: 'Evening — Nike Run Club',
+        items: [
+          ex('Group run', '5k'),
+          ex('Zone 2 ceiling', '138 bpm strict'),
+          ex('Cadence target', '150-155 spm'),
+          ex('Uphills', 'Walk every one, no negotiating'),
+          ex('Surges', 'None — honour every HR alert'),
+        ],
+      },
+      {
+        title: 'Flexibility',
+        meta: 'Post-run',
+        items: [
+          ex('Sun salutation A', 'x3'),
+          ex('Pigeon pose', '90 sec each side'),
+          ex('Seated forward fold', '90 sec'),
+          ex('Supine hamstring stretch', 'Each side'),
+          ex('Butterfly stretch', '60 sec'),
+        ],
+      },
+    ],
+  },
+  {
+    id: 'thursday',
+    short: 'THU',
+    full: 'Thursday',
+    title: 'Active Recovery',
+    equipment: ['Walking shoes', 'Foam roller'],
+    note: 'No gym today. The goal is blood flow, not effort — let the week’s damage actually repair.',
+    sections: [
+      {
+        title: 'Walk',
+        items: [
+          ex('Easy walk', '30-40 min, flat ground'),
+          ex('Heart rate', 'Stays relaxed, conversational pace'),
+          ex('Steps', 'Keep chasing the 10k floor, just don’t chase pace'),
+        ],
+      },
+      {
+        title: 'Foam Rolling',
+        meta: '10 min',
+        items: [
+          ex('Quads and IT band', '90 sec each side'),
+          ex('Glutes', '90 sec each side'),
+          ex('Upper back and lats', '90 sec'),
+          ex('Calves', '60 sec each side'),
+        ],
+      },
+      {
+        title: 'Mobility & Stretch',
+        meta: '10 min',
+        items: [
+          ex('Cat-cow', '10 slow reps'),
+          ex('Thread the needle', '45 sec each side'),
+          ex('Seated forward fold', '90 sec'),
+          ex('Child’s pose', '60 sec'),
         ],
       },
     ],
@@ -507,72 +498,33 @@ const DAYS = [
     id: 'saturday',
     short: 'SAT',
     full: 'Saturday',
-    title: 'Full Body + Cardio',
-    equipment: ['Barbell', 'Dumbbells', 'Cable machine', 'Treadmill'],
-    note: 'Longest session of the week — pace the four supersets, the finisher is where the week gets paid off.',
+    title: 'Active Recovery',
+    equipment: ['Walking shoes', 'Yoga mat'],
+    note: 'Long week behind you — spend this one on the splits goal, not the gym.',
     sections: [
       {
-        title: 'Superset 1',
-        meta: '2 sets to near failure, 30 sec active rest',
+        title: 'Walk',
         items: [
-          ex('Barbell hip thrusts', '8-12 reps · Current 90lbs'),
-          ex('Dumbbell bench press', '5-8 reps · Current 35lbs'),
-          rest('Jump rope 30 sec'),
+          ex('Outdoor walk or easy hike', '45-60 min'),
+          ex('Heart rate', 'Stays relaxed, conversational pace'),
         ],
       },
       {
-        title: 'Superset 2',
-        meta: '2 sets to near failure, 30 sec active rest',
-        items: [
-          w('Romanian deadlift', '8-10 reps', 'Romanian deadlift with straps', '8-10 reps, straps take the grip'),
-          ex('Cable row', '5-8 reps · Current 100lbs'),
-          rest('20 high knees'),
-        ],
-      },
-      {
-        title: 'Superset 3',
-        meta: '2 sets to near failure, 30 sec active rest',
-        items: [
-          ex('Bulgarian split squat', '8 reps each side'),
-          ex('Single arm dumbbell row', '8-10 reps · Current 35lbs'),
-          rest('10 jumping jacks'),
-        ],
-      },
-      {
-        title: 'Superset 4',
-        meta: '2 sets to near failure, 30 sec active rest',
-        items: [
-          ex('Arnold press', '8-10 reps · Current 20lbs'),
-          ex('Lateral raise', '10-12 reps · Current 12.5lbs'),
-          rest('20 high knees'),
-        ],
-      },
-      {
-        title: 'Calisthenics Core Circuit',
-        meta: '2 rounds',
-        items: [
-          w('Ab wheel rollout', 'x10', 'Forearm plank walk-out', 'x10'),
-          ex('Hollow body hold', 'x25 sec'),
-          w('Hanging knee raise', 'x15', 'Lying knee raise', 'x15'),
-          ex('Bicycle crunch', 'x20 each side'),
-          w('Crow pose attempts', '5x10 sec', null, null),
-          ex('Tuck compression', 'x10'),
-        ],
-      },
-      {
-        title: 'Cardio Finisher',
-        items: [
-          ex('Incline treadmill walk', '20 min · 8-10% incline · 3.0-3.5 mph'),
-          ex('Or Lady Bird Lake Zone 2 run', '30 min'),
-        ],
-      },
-      {
-        title: 'Splits Mobility',
-        meta: '5 min',
+        title: 'Deep Splits Mobility',
+        meta: '20 min',
         items: [
           ex('Full pigeon pose', '90 sec each side'),
           ex('Standing split attempt', '30 sec each side'),
-          ex('Seated straddle stretch', '60 sec'),
+          ex('Seated straddle stretch', '90 sec'),
+          ex('Low lunge hip flexor', '60 sec each side'),
+          ex('Frog stretch', '60 sec'),
+        ],
+      },
+      {
+        title: 'Breath & Reset',
+        items: [
+          ex('Box breathing', '4 min'),
+          ex('Legs up the wall', '5 min'),
         ],
       },
     ],
@@ -639,8 +591,6 @@ const OVERLOAD_LOG = [
   { exercise: 'Cable row', current: '100lbs', next: '105lbs' },
   { exercise: 'Face pulls', current: '80lbs', next: '85lbs' },
   { exercise: 'Dumbbell bench press', current: '35lbs', next: '37.5lbs' },
-  { exercise: 'Arnold press', current: '20lbs', next: '22.5lbs' },
-  { exercise: 'Lateral raise', current: '12.5lbs', next: '15lbs' },
   { exercise: 'Incline curl', current: '17.5lbs', next: '20lbs' },
   { exercise: 'Hammer curl', current: '17.5lbs', next: '20lbs' },
   { exercise: 'Cable pull-through', current: '80lbs', next: '90lbs' },
