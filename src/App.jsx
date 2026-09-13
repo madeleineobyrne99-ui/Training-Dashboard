@@ -1,4 +1,7 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+
+const TRAINING_MODE_KEY = 'trainingMode'
+const NEAR_FAILURE_NOTE = 'Every set to near failure — if you can do 3 more reps, make it harder'
 
 /* ----------------------------------------------------------------------- */
 /*  Data                                                                    */
@@ -35,6 +38,21 @@ const DAYS = [
     title: 'Chest, Shoulders + Pull-up Skill',
     equipment: ['Dumbbells', 'Cable machine', 'Pull-up bar', 'Resistance bands'],
     note: 'Own the eccentric on the pull-up negatives — that’s where the strength gets built, not the top.',
+    calisthenics: [
+      {
+        title: 'Calisthenics Strength',
+        bodyweight: true,
+        meta: NEAR_FAILURE_NOTE,
+        items: [
+          ex('Push-ups', '4x max, 3 sec eccentric'),
+          ex('Pike push-ups', '4x12'),
+          ex('Tricep dips off chair', '3x12'),
+          ex('Diamond push-ups', '3x10'),
+          ex('Plank to downward dog', '3x10'),
+          ex('Archer push-ups', '3x8 each side'),
+        ],
+      },
+    ],
     sections: [
       {
         title: 'Warm-up',
@@ -121,6 +139,22 @@ const DAYS = [
     title: 'Booty and Abs',
     equipment: ['Barbell', 'Dumbbells', 'Cable machine', 'Resistance bands'],
     note: 'Slow the eccentric on every hip thrust. Speed there is just momentum stealing work from the glute.',
+    calisthenics: [
+      {
+        title: 'Calisthenics Strength',
+        bodyweight: true,
+        meta: NEAR_FAILURE_NOTE,
+        items: [
+          ex('Single leg glute bridge', '4x20 each side, 2 sec hold'),
+          ex('Donkey kicks', '4x20 each side'),
+          ex('Fire hydrants', '3x20 each side'),
+          ex('Reverse hyper on bench', '3x15'),
+          ex('Frog pumps', '3x25'),
+          ex('Banded lateral walks', '3x20 each direction'),
+          ex('Jump squats', '3x15'),
+        ],
+      },
+    ],
     sections: [
       {
         title: 'Activation',
@@ -300,6 +334,19 @@ const DAYS = [
     title: 'Back and Lats + Pull-up Skill',
     equipment: ['Barbell', 'Dumbbells', 'Cable machine', 'Pull-up bar'],
     note: 'Deadlift day feeds the pull-up block — grip is already primed, don’t waste it warming up twice.',
+    calisthenics: [
+      {
+        title: 'Calisthenics Strength',
+        bodyweight: true,
+        meta: NEAR_FAILURE_NOTE,
+        items: [
+          ex('Table rows, underhand grip', '4x12'),
+          ex('Resistance band pull-apart', '3x20'),
+          ex('Band face pulls', '3x15'),
+          ex('Band bicep curl', '3x15'),
+        ],
+      },
+    ],
     sections: [
       {
         title: 'Warm-up',
@@ -375,6 +422,22 @@ const DAYS = [
     title: 'Legs',
     equipment: ['Barbell', 'Dumbbells', 'Cable machine', 'Resistance bands'],
     note: 'Heavy squats first, while the legs are freshest. Everything after is in service of that first set.',
+    calisthenics: [
+      {
+        title: 'Calisthenics Strength',
+        bodyweight: true,
+        meta: NEAR_FAILURE_NOTE,
+        items: [
+          ex('Jump squats', '4x15'),
+          ex('Pistol squat, assisted', '3x8 each side'),
+          ex('Reverse lunge', '3x12 each side'),
+          ex('Single leg deadlift, bodyweight', '3x10 each side'),
+          ex('Wall sit', '3x45 sec'),
+          ex('Calf raise, bodyweight', '3x25'),
+          ex('Lateral bounds', '3x10 each side'),
+        ],
+      },
+    ],
     sections: [
       {
         title: 'Activation',
@@ -516,6 +579,22 @@ const DAYS = [
   },
 ]
 
+// swaps a day's "Superset N" strength sections for its calisthenics block
+// (in place, so warm-up/skill/core/mobility sections keep their position)
+function getDaySections(day, mode) {
+  if (mode !== 'calisthenics' || !day.calisthenics) return day.sections
+
+  const isSuperset = (title) => title.startsWith('Superset')
+  const kept = day.sections.filter((s) => !isSuperset(s.title))
+  const firstSupersetIdx = day.sections.findIndex((s) => isSuperset(s.title))
+  const insertAt =
+    firstSupersetIdx === -1
+      ? 0
+      : day.sections.slice(0, firstSupersetIdx).filter((s) => !isSuperset(s.title)).length
+
+  return [...kept.slice(0, insertAt), ...day.calisthenics, ...kept.slice(insertAt)]
+}
+
 const BIOMETRIC_RULES = [
   {
     title: 'Body Battery',
@@ -622,6 +701,37 @@ function DaySelector({ days, activeId, onSelect }) {
   )
 }
 
+function ModeToggle({ mode, onToggle }) {
+  const active = mode === 'calisthenics'
+  return (
+    <button
+      onClick={onToggle}
+      className="flex w-full items-center justify-between border-b border-forest-canopy/40 bg-forest-deep px-5 py-3 text-left sm:px-8"
+    >
+      <span className="pr-3">
+        <span className="block font-body text-xs uppercase tracking-wide text-cream">
+          Calisthenics Week
+        </span>
+        <span className="block font-body text-[11px] text-sage">
+          {active ? 'Calisthenics mode' : 'Weights mode'}
+        </span>
+      </span>
+      <span
+        className="relative h-5 w-9 shrink-0 rounded-full transition-colors"
+        style={{ backgroundColor: active ? 'rgba(201,169,110,0.35)' : '#1C2B1E' }}
+      >
+        <span
+          className="absolute top-0.5 h-4 w-4 rounded-full transition-transform"
+          style={{
+            backgroundColor: active ? '#C9A96E' : '#7A9E7E',
+            transform: active ? 'translateX(18px)' : 'translateX(2px)',
+          }}
+        />
+      </span>
+    </button>
+  )
+}
+
 function WristToggle({ active, onToggle }) {
   return (
     <button
@@ -701,7 +811,14 @@ function Section({ section, wristFlag, defaultOpen }) {
         className="flex w-full items-center justify-between gap-3 py-4 text-left"
       >
         <div>
-          <h3 className="font-display text-xl italic text-gold">{section.title}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-display text-xl italic text-gold">{section.title}</h3>
+            {section.bodyweight && (
+              <span className="rounded-full bg-gold px-2 py-0.5 font-body text-[9px] uppercase tracking-wide text-forest-deep">
+                Bodyweight
+              </span>
+            )}
+          </div>
           {section.meta && (
             <p className="mt-0.5 font-body text-[11px] uppercase tracking-wide text-sage">
               {section.meta}
@@ -726,7 +843,8 @@ function Section({ section, wristFlag, defaultOpen }) {
   )
 }
 
-function WorkoutCard({ day, wristFlag }) {
+function WorkoutCard({ day, wristFlag, mode }) {
+  const sections = getDaySections(day, mode)
   return (
     <div
       key={day.id}
@@ -757,7 +875,7 @@ function WorkoutCard({ day, wristFlag }) {
       </div>
 
       <div className="mt-5">
-        {day.sections.map((section, i) => (
+        {sections.map((section, i) => (
           <Section key={section.title} section={section} wristFlag={wristFlag} defaultOpen={i === 0} />
         ))}
       </div>
@@ -855,6 +973,15 @@ export default function App() {
   const todayId = DAYS[new Date().getDay()].id
   const [activeId, setActiveId] = useState(todayId)
   const [wristFlag, setWristFlag] = useState(false)
+  const [mode, setMode] = useState(() => {
+    if (typeof window === 'undefined') return 'weights'
+    return localStorage.getItem(TRAINING_MODE_KEY) === 'calisthenics' ? 'calisthenics' : 'weights'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(TRAINING_MODE_KEY, mode)
+    document.body.classList.toggle('calisthenics-mode', mode === 'calisthenics')
+  }, [mode])
 
   const activeDay = useMemo(() => DAYS.find((d) => d.id === activeId), [activeId])
 
@@ -870,13 +997,14 @@ export default function App() {
       </header>
 
       <GoalsRibbon />
+      <ModeToggle mode={mode} onToggle={() => setMode((m) => (m === 'weights' ? 'calisthenics' : 'weights'))} />
       <DaySelector days={DAYS} activeId={activeId} onSelect={setActiveId} />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-5 py-6 sm:px-8 sm:py-10">
         <WristToggle active={wristFlag} onToggle={() => setWristFlag((f) => !f)} />
-        <WorkoutCard day={activeDay} wristFlag={wristFlag} />
+        <WorkoutCard day={activeDay} wristFlag={wristFlag} mode={mode} />
         <BiometricPanel />
-        <OverloadTable />
+        {mode === 'weights' && <OverloadTable />}
       </main>
 
       <footer className="px-5 py-8 text-center font-body text-[11px] uppercase tracking-widest text-sage sm:px-8">
