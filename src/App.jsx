@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
 const TRAINING_MODE_KEY = 'trainingMode'
-const NEAR_FAILURE_NOTE = 'Every set to near failure — if you can do 3 more reps, make it harder'
+const DAY_MODE_KEY_PREFIX = 'dayMode_'
+const NEAR_FAILURE_NOTE = 'Every set to near failure. If you can do 3 more reps, make it harder.'
 
 /* ----------------------------------------------------------------------- */
 /*  Data                                                                    */
@@ -44,12 +45,13 @@ const DAYS = [
         bodyweight: true,
         meta: NEAR_FAILURE_NOTE,
         items: [
-          ex('Push-ups', '4x max, 3 sec eccentric'),
+          ex('Wide push-ups', '4x max reps, 3 sec eccentric'),
           ex('Pike push-ups', '4x12'),
           ex('Tricep dips off chair', '3x12'),
           ex('Diamond push-ups', '3x10'),
-          ex('Plank to downward dog', '3x10'),
           ex('Archer push-ups', '3x8 each side'),
+          ex('Decline push-ups', '3x12'),
+          ex('Pseudo planche lean push-ups', '3x10'),
         ],
       },
     ],
@@ -146,11 +148,12 @@ const DAYS = [
         meta: NEAR_FAILURE_NOTE,
         items: [
           ex('Single leg glute bridge', '4x20 each side, 2 sec hold'),
-          ex('Donkey kicks', '4x20 each side'),
+          ex('Bulgarian split squat, bodyweight', '4x12 each side'),
+          ex('Donkey kicks', '3x25 each side'),
           ex('Fire hydrants', '3x20 each side'),
-          ex('Reverse hyper on bench', '3x15'),
-          ex('Frog pumps', '3x25'),
-          ex('Banded lateral walks', '3x20 each direction'),
+          ex('Frog pumps', '3x30'),
+          ex('Curtsy lunge', '3x15 each side'),
+          ex('Cossack squat', '3x10 each side'),
           ex('Jump squats', '3x15'),
         ],
       },
@@ -235,10 +238,14 @@ const DAYS = [
         bodyweight: true,
         meta: NEAR_FAILURE_NOTE,
         items: [
-          ex('Table rows, underhand grip', '4x12'),
-          ex('Resistance band pull-apart', '3x20'),
-          ex('Band face pulls', '3x15'),
-          ex('Band bicep curl', '3x15'),
+          ex('Dead hang', '3x max time'),
+          ex('Scapular pull-ups', '4x10'),
+          ex('Chin-ups', 'Max reps, 3 sets'),
+          ex('Inverted rows, under table or bar', '4x12'),
+          ex('Negative pull-ups', '3x5, 8 sec controlled descent'),
+          ex('Archer pull-ups', '3x5 each side'),
+          ex('Band pull-aparts', '3x20'),
+          ex('Commando pull-ups', '3x6 each side'),
         ],
       },
     ],
@@ -421,11 +428,12 @@ const DAYS = [
         items: [
           ex('Jump squats', '4x15'),
           ex('Pistol squat, assisted', '3x8 each side'),
-          ex('Reverse lunge', '3x12 each side'),
+          ex('Bulgarian split squat, bodyweight', '3x12 each side'),
+          ex('Cossack squat', '3x10 each side'),
+          ex('Reverse nordic curl', '3x8'),
           ex('Single leg deadlift, bodyweight', '3x10 each side'),
           ex('Wall sit', '3x45 sec'),
           ex('Calf raise, bodyweight', '3x25'),
-          ex('Lateral bounds', '3x10 each side'),
         ],
       },
     ],
@@ -709,6 +717,44 @@ function WristToggle({ active, onToggle }) {
   )
 }
 
+function DayModeToggle({ active, disabled, onToggle }) {
+  return (
+    <button
+      onClick={disabled ? undefined : onToggle}
+      disabled={disabled}
+      className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors sm:w-auto sm:min-w-[280px]"
+      style={{
+        borderColor: active ? '#C9A96E' : 'rgba(168,197,160,0.25)',
+        backgroundColor: active ? 'rgba(201,169,110,0.1)' : 'rgba(45,74,48,0.4)',
+        opacity: disabled ? 0.45 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      <span className="pr-3">
+        <span className="block font-body text-xs uppercase tracking-wide text-cream">
+          This day
+        </span>
+        <span className="block font-body text-[11px] text-sage">
+          {disabled
+            ? 'Set by Calisthenics Week above'
+            : active
+            ? 'Calisthenics mode'
+            : 'Weights mode'}
+        </span>
+      </span>
+      <span
+        className="relative h-5 w-9 shrink-0 rounded-full transition-colors"
+        style={{ backgroundColor: active ? '#C9A96E' : '#3D6B42' }}
+      >
+        <span
+          className="absolute top-0.5 h-4 w-4 rounded-full bg-ivory transition-transform"
+          style={{ transform: active ? 'translateX(18px)' : 'translateX(2px)' }}
+        />
+      </span>
+    </button>
+  )
+}
+
 function ExerciseRow({ item, wristFlag }) {
   if (item.type === 'rest') {
     return (
@@ -751,7 +797,11 @@ function ExerciseRow({ item, wristFlag }) {
 function Section({ section, wristFlag, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border-b border-fern/10 last:border-none">
+    <div
+      className={`border-b border-fern/10 last:border-none ${
+        section.bodyweight ? 'border-l-2 border-l-gold/50 pl-3' : ''
+      }`}
+    >
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-3 py-4 text-left"
@@ -765,11 +815,14 @@ function Section({ section, wristFlag, defaultOpen }) {
               </span>
             )}
           </div>
-          {section.meta && (
-            <p className="mt-0.5 font-body text-[11px] uppercase tracking-wide text-sage">
-              {section.meta}
-            </p>
-          )}
+          {section.meta &&
+            (section.bodyweight ? (
+              <p className="mt-1 font-body text-[13px] italic text-sage">{section.meta}</p>
+            ) : (
+              <p className="mt-0.5 font-body text-[11px] uppercase tracking-wide text-sage">
+                {section.meta}
+              </p>
+            ))}
         </div>
         <span
           className="font-display text-2xl text-fern transition-transform"
@@ -789,7 +842,7 @@ function Section({ section, wristFlag, defaultOpen }) {
   )
 }
 
-function WorkoutCard({ day, wristFlag, mode }) {
+function WorkoutCard({ day, wristFlag, mode, globalActive, onToggleDay }) {
   const sections = getDaySections(day, mode)
   return (
     <div
@@ -819,6 +872,16 @@ function WorkoutCard({ day, wristFlag, mode }) {
           </span>
         ))}
       </div>
+
+      {day.calisthenics && (
+        <div className="mt-4">
+          <DayModeToggle
+            active={mode === 'calisthenics'}
+            disabled={globalActive}
+            onToggle={onToggleDay}
+          />
+        </div>
+      )}
 
       <div className="mt-5">
         {sections.map((section, i) => (
@@ -923,13 +986,34 @@ export default function App() {
     if (typeof window === 'undefined') return 'weights'
     return localStorage.getItem(TRAINING_MODE_KEY) === 'calisthenics' ? 'calisthenics' : 'weights'
   })
+  const [dayModes, setDayModes] = useState(() => {
+    if (typeof window === 'undefined') return DAYS.map(() => 'weights')
+    return DAYS.map((_, i) =>
+      localStorage.getItem(`${DAY_MODE_KEY_PREFIX}${i}`) === 'calisthenics' ? 'calisthenics' : 'weights'
+    )
+  })
 
   useEffect(() => {
     localStorage.setItem(TRAINING_MODE_KEY, mode)
     document.body.classList.toggle('calisthenics-mode', mode === 'calisthenics')
   }, [mode])
 
-  const activeDay = useMemo(() => DAYS.find((d) => d.id === activeId), [activeId])
+  useEffect(() => {
+    dayModes.forEach((m, i) => localStorage.setItem(`${DAY_MODE_KEY_PREFIX}${i}`, m))
+  }, [dayModes])
+
+  const activeDayIndex = useMemo(() => DAYS.findIndex((d) => d.id === activeId), [activeId])
+  const activeDay = DAYS[activeDayIndex]
+  const globalActive = mode === 'calisthenics'
+  const effectiveMode = globalActive ? 'calisthenics' : dayModes[activeDayIndex]
+
+  const toggleDayMode = () => {
+    setDayModes((prev) => {
+      const next = [...prev]
+      next[activeDayIndex] = next[activeDayIndex] === 'weights' ? 'calisthenics' : 'weights'
+      return next
+    })
+  }
 
   return (
     <div className="min-h-screen bg-forest-deep font-body text-ivory">
@@ -948,9 +1032,15 @@ export default function App() {
 
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-5 py-6 sm:px-8 sm:py-10">
         <WristToggle active={wristFlag} onToggle={() => setWristFlag((f) => !f)} />
-        <WorkoutCard day={activeDay} wristFlag={wristFlag} mode={mode} />
+        <WorkoutCard
+          day={activeDay}
+          wristFlag={wristFlag}
+          mode={effectiveMode}
+          globalActive={globalActive}
+          onToggleDay={toggleDayMode}
+        />
         <BiometricPanel />
-        {mode === 'weights' && <OverloadTable />}
+        {effectiveMode === 'weights' && <OverloadTable />}
       </main>
 
       <footer className="px-5 py-8 text-center font-body text-[11px] uppercase tracking-widest text-sage sm:px-8">
