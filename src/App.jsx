@@ -3,6 +3,15 @@ import React, { useEffect, useMemo, useState } from 'react'
 const TRAINING_MODE_KEY = 'trainingMode'
 const DAY_MODE_KEY_PREFIX = 'dayMode_'
 const WEIGHT_LOG_KEY = 'weightLog'
+const RUN_LOG_KEY = 'runLog'
+
+function formatPace(durationMin, distanceMi) {
+  if (!distanceMi) return '—'
+  const paceMin = durationMin / distanceMi
+  const whole = Math.floor(paceMin)
+  const seconds = Math.round((paceMin - whole) * 60)
+  return `${whole}:${String(seconds).padStart(2, '0')}/mi`
+}
 const NEAR_FAILURE_NOTE = 'Every set to near failure. If you can do 3 more reps, make it harder.'
 
 // Canonical registry of every progressively-tracked lift. `base` is the
@@ -425,6 +434,7 @@ const DAYS = [
     equipment: ['Running shoes', 'HR monitor'],
     note: 'No lifting. Protect the legs for the run — every uphill gets walked, no negotiating.',
     isCardio: true,
+    isRun: true,
     sections: [
       {
         title: 'Morning',
@@ -591,6 +601,7 @@ const DAYS = [
     title: 'Zone 2 Run + Yoga',
     equipment: ['Running shoes', 'HR monitor', 'Yoga mat'],
     note: 'Zone 2 stays Zone 2 — if the watch buzzes, you’re running someone else’s workout.',
+    isRun: true,
     sections: [
       {
         title: 'Zone 2 Run',
@@ -919,7 +930,7 @@ function Section({ section, defaultOpen, weightLog, onLogWeight }) {
   )
 }
 
-function WorkoutCard({ day, mode, globalActive, onToggleDay, weightLog, onLogWeight }) {
+function WorkoutCard({ day, mode, globalActive, onToggleDay, weightLog, onLogWeight, runLog, onLogRun }) {
   const sections = getDaySections(day, mode)
   return (
     <div
@@ -960,6 +971,14 @@ function WorkoutCard({ day, mode, globalActive, onToggleDay, weightLog, onLogWei
         </div>
       )}
 
+      {day.isRun && (
+        <RunLogPanel
+          dayId={day.id}
+          entries={runLog.filter((r) => r.dayId === day.id)}
+          onLogRun={onLogRun}
+        />
+      )}
+
       <div className="mt-5">
         {sections.map((section, i) => (
           <Section
@@ -971,6 +990,98 @@ function WorkoutCard({ day, mode, globalActive, onToggleDay, weightLog, onLogWei
           />
         ))}
       </div>
+    </div>
+  )
+}
+
+function RunLogPanel({ dayId, entries, onLogRun }) {
+  const [distance, setDistance] = useState('')
+  const [duration, setDuration] = useState('')
+  const [avgHr, setAvgHr] = useState('')
+
+  const submit = () => {
+    const d = parseFloat(distance)
+    const t = parseFloat(duration)
+    if (Number.isNaN(d) || Number.isNaN(t) || d <= 0 || t <= 0) return
+    onLogRun(dayId, { distance: d, duration: t, avgHr: avgHr ? parseInt(avgHr, 10) : null })
+    setDistance('')
+    setDuration('')
+    setAvgHr('')
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-fern/20 bg-forest-deep/40 p-4">
+      <p className="font-body text-xs uppercase tracking-wide text-cream">Running log</p>
+      <p className="mt-0.5 font-body text-[11px] text-sage">
+        Log today’s run to track pace and effort over time.
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1">
+          <span className="font-body text-[10px] uppercase tracking-wide text-sage">Miles</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            placeholder="3.1"
+            value={distance}
+            onChange={(e) => setDistance(e.target.value)}
+            className="w-16 rounded border border-fern/25 bg-forest-deep/60 px-2 py-1 font-body text-[13px] text-ivory placeholder:text-sage/50 focus:border-gold focus:outline-none"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="font-body text-[10px] uppercase tracking-wide text-sage">Minutes</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            step="1"
+            placeholder="32"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            className="w-16 rounded border border-fern/25 bg-forest-deep/60 px-2 py-1 font-body text-[13px] text-ivory placeholder:text-sage/50 focus:border-gold focus:outline-none"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="font-body text-[10px] uppercase tracking-wide text-sage">Avg HR</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            step="1"
+            placeholder="138"
+            value={avgHr}
+            onChange={(e) => setAvgHr(e.target.value)}
+            className="w-16 rounded border border-fern/25 bg-forest-deep/60 px-2 py-1 font-body text-[13px] text-ivory placeholder:text-sage/50 focus:border-gold focus:outline-none"
+          />
+        </label>
+        <button
+          onClick={submit}
+          className="rounded-full border border-gold/50 px-3 py-1.5 font-body text-[11px] uppercase tracking-wide text-gold"
+        >
+          Log run
+        </button>
+      </div>
+
+      {entries.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {entries
+            .slice()
+            .reverse()
+            .map((entry) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-fern/10 pt-2 font-body text-[13px]"
+              >
+                <span className="text-ivory">{entry.date}</span>
+                <span className="text-sage">{entry.distance} mi</span>
+                <span className="text-sage">{entry.duration} min</span>
+                <span className="font-medium text-gold">
+                  {formatPace(entry.duration, entry.distance)}
+                </span>
+                {entry.avgHr && <span className="text-sage">{entry.avgHr} bpm avg</span>}
+              </li>
+            ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -1090,6 +1201,14 @@ export default function App() {
       return {}
     }
   })
+  const [runLog, setRunLog] = useState(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      return JSON.parse(localStorage.getItem(RUN_LOG_KEY)) || []
+    } catch {
+      return []
+    }
+  })
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60 * 1000)
@@ -1109,6 +1228,10 @@ export default function App() {
     localStorage.setItem(WEIGHT_LOG_KEY, JSON.stringify(weightLog))
   }, [weightLog])
 
+  useEffect(() => {
+    localStorage.setItem(RUN_LOG_KEY, JSON.stringify(runLog))
+  }, [runLog])
+
   const activeDayIndex = useMemo(() => DAYS.findIndex((d) => d.id === activeId), [activeId])
   const activeDay = DAYS[activeDayIndex]
   const globalActive = mode === 'calisthenics'
@@ -1127,6 +1250,18 @@ export default function App() {
       ...prev,
       [key]: { weight, loggedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) },
     }))
+  }
+
+  const logRun = (dayId, entry) => {
+    setRunLog((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        dayId,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        ...entry,
+      },
+    ])
   }
 
   return (
@@ -1152,6 +1287,8 @@ export default function App() {
           onToggleDay={toggleDayMode}
           weightLog={weightLog}
           onLogWeight={logWeight}
+          runLog={runLog}
+          onLogRun={logRun}
         />
         <BiometricPanel />
         {effectiveMode === 'weights' && <OverloadTable weightLog={weightLog} />}
