@@ -686,37 +686,6 @@ function ModeToggle({ mode, onToggle }) {
   )
 }
 
-function WristToggle({ active, onToggle }) {
-  return (
-    <button
-      onClick={onToggle}
-      className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors sm:w-auto sm:min-w-[280px]"
-      style={{
-        borderColor: active ? '#C9A96E' : 'rgba(168,197,160,0.25)',
-        backgroundColor: active ? 'rgba(201,169,110,0.1)' : 'rgba(45,74,48,0.4)',
-      }}
-    >
-      <span className="pr-3">
-        <span className="block font-body text-xs uppercase tracking-wide text-cream">
-          Wrist flag
-        </span>
-        <span className="block font-body text-[11px] text-sage">
-          {active ? 'Grip-loading exercises swapped' : 'Tap on if the wrist is bothering you'}
-        </span>
-      </span>
-      <span
-        className="relative h-5 w-9 shrink-0 rounded-full transition-colors"
-        style={{ backgroundColor: active ? '#C9A96E' : '#3D6B42' }}
-      >
-        <span
-          className="absolute top-0.5 h-4 w-4 rounded-full bg-ivory transition-transform"
-          style={{ transform: active ? 'translateX(18px)' : 'translateX(2px)' }}
-        />
-      </span>
-    </button>
-  )
-}
-
 function DayModeToggle({ active, disabled, onToggle }) {
   return (
     <button
@@ -755,7 +724,7 @@ function DayModeToggle({ active, disabled, onToggle }) {
   )
 }
 
-function ExerciseRow({ item, wristFlag }) {
+function ExerciseRow({ item }) {
   if (item.type === 'rest') {
     return (
       <li className="flex items-center gap-2 py-1.5 font-body text-[13px] italic text-sage">
@@ -765,36 +734,29 @@ function ExerciseRow({ item, wristFlag }) {
     )
   }
 
-  const showAlt = wristFlag && item.wrist && (item.altName || item.altDetail)
-  const displayName = showAlt && item.altName ? item.altName : item.name
-  const displayDetail = showAlt && item.altDetail ? item.altDetail : item.detail
-
   return (
     <li className="flex items-start justify-between gap-3 border-b border-fern/10 py-2.5 last:border-none">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-body text-[15px] text-ivory">{displayName}</span>
+          <span className="font-body text-[15px] text-ivory">{item.name}</span>
           {item.wrist && (
             <span
-              className="rounded-full px-2 py-0.5 font-body text-[9px] uppercase tracking-wide"
-              style={{
-                color: wristFlag ? '#1C2B1E' : '#C9A96E',
-                backgroundColor: wristFlag ? '#C9A96E' : 'rgba(201,169,110,0.15)',
-              }}
+              className="rounded-full px-2 py-0.5 font-body text-[9px] uppercase tracking-wide text-gold"
+              style={{ backgroundColor: 'rgba(201,169,110,0.15)' }}
             >
-              {wristFlag ? 'Modified' : 'Wrist load'}
+              Wrist load
             </span>
           )}
         </div>
-        {displayDetail && (
-          <div className="mt-0.5 font-body text-[13px] text-sage">{displayDetail}</div>
+        {item.detail && (
+          <div className="mt-0.5 font-body text-[13px] text-sage">{item.detail}</div>
         )}
       </div>
     </li>
   )
 }
 
-function Section({ section, wristFlag, defaultOpen }) {
+function Section({ section, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div
@@ -834,7 +796,7 @@ function Section({ section, wristFlag, defaultOpen }) {
       {open && (
         <ul className="day-reveal pb-4">
           {section.items.map((item, i) => (
-            <ExerciseRow key={i} item={item} wristFlag={wristFlag} />
+            <ExerciseRow key={i} item={item} />
           ))}
         </ul>
       )}
@@ -842,7 +804,7 @@ function Section({ section, wristFlag, defaultOpen }) {
   )
 }
 
-function WorkoutCard({ day, wristFlag, mode, globalActive, onToggleDay }) {
+function WorkoutCard({ day, mode, globalActive, onToggleDay }) {
   const sections = getDaySections(day, mode)
   return (
     <div
@@ -885,7 +847,7 @@ function WorkoutCard({ day, wristFlag, mode, globalActive, onToggleDay }) {
 
       <div className="mt-5">
         {sections.map((section, i) => (
-          <Section key={section.title} section={section} wristFlag={wristFlag} defaultOpen={i === 0} />
+          <Section key={section.title} section={section} defaultOpen={i === 0} />
         ))}
       </div>
     </div>
@@ -967,21 +929,17 @@ function OverloadTable() {
 /*  App                                                                     */
 /* ----------------------------------------------------------------------- */
 
-function weekLabel() {
-  const now = new Date()
-  const day = now.getDay()
-  const sunday = new Date(now)
-  sunday.setDate(now.getDate() - day)
-  const saturday = new Date(sunday)
-  saturday.setDate(sunday.getDate() + 6)
-  const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return `${fmt(sunday)} – ${fmt(saturday)}`
+function todayLabel(date) {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 export default function App() {
   const todayId = DAYS[new Date().getDay()].id
   const [activeId, setActiveId] = useState(todayId)
-  const [wristFlag, setWristFlag] = useState(false)
   const [mode, setMode] = useState(() => {
     if (typeof window === 'undefined') return 'weights'
     return localStorage.getItem(TRAINING_MODE_KEY) === 'calisthenics' ? 'calisthenics' : 'weights'
@@ -992,6 +950,12 @@ export default function App() {
       localStorage.getItem(`${DAY_MODE_KEY_PREFIX}${i}`) === 'calisthenics' ? 'calisthenics' : 'weights'
     )
   })
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(TRAINING_MODE_KEY, mode)
@@ -1022,7 +986,7 @@ export default function App() {
           <h1 className="font-display text-2xl font-semibold tracking-[0.25em] text-ivory">
             MADELEINE
           </h1>
-          <span className="font-body text-xs uppercase tracking-wide text-sage">{weekLabel()}</span>
+          <span className="font-body text-xs uppercase tracking-wide text-sage">{todayLabel(now)}</span>
         </div>
       </header>
 
@@ -1031,10 +995,8 @@ export default function App() {
       <DaySelector days={DAYS} activeId={activeId} onSelect={setActiveId} />
 
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-5 py-6 sm:px-8 sm:py-10">
-        <WristToggle active={wristFlag} onToggle={() => setWristFlag((f) => !f)} />
         <WorkoutCard
           day={activeDay}
-          wristFlag={wristFlag}
           mode={effectiveMode}
           globalActive={globalActive}
           onToggleDay={toggleDayMode}
