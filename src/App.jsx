@@ -97,7 +97,10 @@ const w = (name, detail, altName, altDetail) => ({
   altName,
   altDetail,
 })
-const ex = (name, detail) => ({ name, detail })
+// `modeOnly: 'weights' | 'calisthenics'` restricts an item to one mode
+// even inside a section that itself appears in both (e.g. a mobility
+// drill added only for the bodyweight version of a lifting day)
+const ex = (name, detail, extra = {}) => ({ name, detail, ...extra })
 const rest = (label) => ({ type: 'rest', label })
 // a progressively-tracked lift — its "Current"/"Next" weight is computed
 // live from the weight log instead of baked into a static detail string
@@ -245,6 +248,7 @@ const DAYS = [
         title: 'Activation',
         meta: '5 min, no rest',
         items: [
+          ex('90/90 active hip transitions', '5 slow reps each side', { modeOnly: 'calisthenics' }),
           ex('Banded clamshells', '2x20 each side'),
           ex('Banded lateral walks', '2x15 each direction'),
           ex('Donkey kicks', '2x15 each side'),
@@ -307,6 +311,7 @@ const DAYS = [
           ex('Deep lunge with twist', '60 sec each side'),
           ex('Seated butterfly stretch', '60 sec'),
           ex('Standing hamstring stretch', '60 sec each side'),
+          ex('90/90 hold', '60-90 sec each side', { modeOnly: 'calisthenics' }),
         ],
       },
     ],
@@ -636,20 +641,35 @@ const DAYS = [
   },
 ]
 
+// drops items restricted to the other mode (e.g. a mobility drill added
+// only for the bodyweight version of a section that appears in both)
+function filterSectionItems(section, mode) {
+  return {
+    ...section,
+    items: section.items.filter((item) => !item.modeOnly || item.modeOnly === mode),
+  }
+}
+
 // swaps a day's "Superset N" strength sections for its calisthenics block
 // (in place, so warm-up/skill/core/mobility sections keep their position)
 function getDaySections(day, mode) {
-  if (mode !== 'calisthenics' || !day.calisthenics) return day.sections
+  let sections
 
-  const isSuperset = (title) => title.startsWith('Superset')
-  const kept = day.sections.filter((s) => !isSuperset(s.title))
-  const firstSupersetIdx = day.sections.findIndex((s) => isSuperset(s.title))
-  const insertAt =
-    firstSupersetIdx === -1
-      ? 0
-      : day.sections.slice(0, firstSupersetIdx).filter((s) => !isSuperset(s.title)).length
+  if (mode !== 'calisthenics' || !day.calisthenics) {
+    sections = day.sections
+  } else {
+    const isSuperset = (title) => title.startsWith('Superset')
+    const kept = day.sections.filter((s) => !isSuperset(s.title))
+    const firstSupersetIdx = day.sections.findIndex((s) => isSuperset(s.title))
+    const insertAt =
+      firstSupersetIdx === -1
+        ? 0
+        : day.sections.slice(0, firstSupersetIdx).filter((s) => !isSuperset(s.title)).length
 
-  return [...kept.slice(0, insertAt), ...day.calisthenics, ...kept.slice(insertAt)]
+    sections = [...kept.slice(0, insertAt), ...day.calisthenics, ...kept.slice(insertAt)]
+  }
+
+  return sections.map((s) => filterSectionItems(s, mode))
 }
 
 const BIOMETRIC_RULES = [
