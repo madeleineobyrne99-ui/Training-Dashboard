@@ -4,6 +4,7 @@ const TRAINING_MODE_KEY = 'trainingMode'
 const DAY_MODE_KEY_PREFIX = 'dayMode_'
 const WEIGHT_LOG_KEY = 'weightLog'
 const RUN_LOG_KEY = 'runLog'
+const REP_LOG_KEY = 'repLog'
 
 function formatPace(durationMin, distanceMi) {
   if (!distanceMi) return '—'
@@ -11,6 +12,13 @@ function formatPace(durationMin, distanceMi) {
   const whole = Math.floor(paceMin)
   const seconds = Math.round((paceMin - whole) * 60)
   return `${whole}:${String(seconds).padStart(2, '0')}/mi`
+}
+
+// stable per-exercise key for the rep log, derived from its name so the
+// same bodyweight exercise (e.g. "Jump squats" on both Monday and Friday)
+// shares one PR history
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 }
 const NEAR_FAILURE_NOTE = 'Every set to near failure. If you can do 3 more reps, make it harder.'
 
@@ -834,7 +842,44 @@ function WeightLogInput({ trackKey, suggested, unit, lastLoggedAt, onLog }) {
   )
 }
 
-function ExerciseRow({ item, weightLog, onLogWeight }) {
+function RepLogInput({ repKey, lastReps, lastLoggedAt, onLog }) {
+  const [value, setValue] = useState('')
+  const submit = () => {
+    const num = parseInt(value, 10)
+    if (!Number.isNaN(num) && num > 0) {
+      onLog(repKey, num)
+      setValue('')
+    }
+  }
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+      <input
+        type="number"
+        inputMode="numeric"
+        step="1"
+        placeholder={lastReps != null ? `${lastReps}` : 'reps'}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        className="w-16 rounded border border-fern/25 bg-forest-deep/60 px-2 py-1 font-body text-[13px] text-ivory placeholder:text-sage/50 focus:border-gold focus:outline-none"
+      />
+      <span className="font-body text-[10px] uppercase tracking-wide text-sage">reps</span>
+      <button
+        onClick={submit}
+        className="rounded-full border border-gold/50 px-2.5 py-1 font-body text-[10px] uppercase tracking-wide text-gold"
+      >
+        Log
+      </button>
+      {lastReps != null && (
+        <span className="font-body text-[10px] text-sage">
+          PR {lastReps} ({lastLoggedAt})
+        </span>
+      )}
+    </div>
+  )
+}
+
+function ExerciseRow({ item, weightLog, onLogWeight, trackReps, repLog, onLogReps }) {
   if (item.type === 'rest') {
     return (
       <li className="flex items-center gap-2 py-1.5 font-body text-[13px] italic text-sage">
@@ -852,6 +897,8 @@ function ExerciseRow({ item, weightLog, onLogWeight }) {
       ? `${formatWeight(current, trackedMeta.unit)} · ${item.repRange}`
       : `${item.repRange} · Current ${formatWeight(current, trackedMeta.unit)} · Next ${formatWeight(next, trackedMeta.unit)}`
     : item.detail
+
+  const repKey = trackReps && !trackedMeta ? slugify(item.name) : null
 
   return (
     <li className="flex items-start justify-between gap-3 border-b border-fern/10 py-2.5 last:border-none">
@@ -877,12 +924,20 @@ function ExerciseRow({ item, weightLog, onLogWeight }) {
             onLog={onLogWeight}
           />
         )}
+        {repKey && (
+          <RepLogInput
+            repKey={repKey}
+            lastReps={repLog[repKey]?.reps ?? null}
+            lastLoggedAt={repLog[repKey]?.loggedAt}
+            onLog={onLogReps}
+          />
+        )}
       </div>
     </li>
   )
 }
 
-function Section({ section, defaultOpen, weightLog, onLogWeight }) {
+function Section({ section, defaultOpen, weightLog, onLogWeight, repLog, onLogReps }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div
@@ -922,7 +977,15 @@ function Section({ section, defaultOpen, weightLog, onLogWeight }) {
       {open && (
         <ul className="day-reveal pb-4">
           {section.items.map((item, i) => (
-            <ExerciseRow key={i} item={item} weightLog={weightLog} onLogWeight={onLogWeight} />
+            <ExerciseRow
+              key={i}
+              item={item}
+              weightLog={weightLog}
+              onLogWeight={onLogWeight}
+              trackReps={section.bodyweight}
+              repLog={repLog}
+              onLogReps={onLogReps}
+            />
           ))}
         </ul>
       )}
@@ -930,7 +993,18 @@ function Section({ section, defaultOpen, weightLog, onLogWeight }) {
   )
 }
 
-function WorkoutCard({ day, mode, globalActive, onToggleDay, weightLog, onLogWeight, runLog, onLogRun }) {
+function WorkoutCard({
+  day,
+  mode,
+  globalActive,
+  onToggleDay,
+  weightLog,
+  onLogWeight,
+  runLog,
+  onLogRun,
+  repLog,
+  onLogReps,
+}) {
   const sections = getDaySections(day, mode)
   return (
     <div
@@ -987,6 +1061,8 @@ function WorkoutCard({ day, mode, globalActive, onToggleDay, weightLog, onLogWei
             defaultOpen={i === 0}
             weightLog={weightLog}
             onLogWeight={onLogWeight}
+            repLog={repLog}
+            onLogReps={onLogReps}
           />
         ))}
       </div>
@@ -1209,6 +1285,14 @@ export default function App() {
       return []
     }
   })
+  const [repLog, setRepLog] = useState(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      return JSON.parse(localStorage.getItem(REP_LOG_KEY)) || {}
+    } catch {
+      return {}
+    }
+  })
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60 * 1000)
@@ -1231,6 +1315,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(RUN_LOG_KEY, JSON.stringify(runLog))
   }, [runLog])
+
+  useEffect(() => {
+    localStorage.setItem(REP_LOG_KEY, JSON.stringify(repLog))
+  }, [repLog])
 
   const activeDayIndex = useMemo(() => DAYS.findIndex((d) => d.id === activeId), [activeId])
   const activeDay = DAYS[activeDayIndex]
@@ -1264,6 +1352,13 @@ export default function App() {
     ])
   }
 
+  const logReps = (key, reps) => {
+    setRepLog((prev) => ({
+      ...prev,
+      [key]: { reps, loggedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) },
+    }))
+  }
+
   return (
     <div className="min-h-screen bg-forest-deep font-body text-ivory">
       <header className="border-b border-forest-canopy/40 px-5 py-6 sm:px-8">
@@ -1289,6 +1384,8 @@ export default function App() {
           onLogWeight={logWeight}
           runLog={runLog}
           onLogRun={logRun}
+          repLog={repLog}
+          onLogReps={logReps}
         />
         <BiometricPanel />
         {effectiveMode === 'weights' && <OverloadTable weightLog={weightLog} />}
