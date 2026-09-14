@@ -2,7 +2,59 @@ import React, { useEffect, useMemo, useState } from 'react'
 
 const TRAINING_MODE_KEY = 'trainingMode'
 const DAY_MODE_KEY_PREFIX = 'dayMode_'
+const WEIGHT_LOG_KEY = 'weightLog'
 const NEAR_FAILURE_NOTE = 'Every set to near failure. If you can do 3 more reps, make it harder.'
+
+// Canonical registry of every progressively-tracked lift. `base` is the
+// starting weight before any logged history; `inc` is how much the
+// suggested "next" weight moves once "base" (or the last logged weight)
+// is hit — negative for assisted work, where less assistance is progress.
+const TRACKED = {
+  benchPress: { label: 'Dumbbell bench press', base: 35, inc: 2.5, unit: 'lbs' },
+  cableRow: { label: 'Cable row', base: 100, inc: 5, unit: 'lbs' },
+  singleArmRow: { label: 'Single arm row', base: 35, inc: 2.5, unit: 'lbs' },
+  facePulls: { label: 'Face pulls', base: 80, inc: 5, unit: 'lbs' },
+  bulgarianSplitSquat: { label: 'Bulgarian split squat', base: 20, inc: 5, unit: 'lbs' },
+  hipThrust: { label: 'Barbell hip thrusts', base: 90, inc: 10, unit: 'lbs' },
+  romanianDeadlift: { label: 'Romanian deadlift', base: 60, inc: 5, unit: 'lbs' },
+  cableKickbacks: { label: 'Cable kickbacks', base: 80, inc: 5, unit: 'lbs' },
+  cableHipAbduction: { label: 'Cable hip abduction', base: 70, inc: 5, unit: 'lbs' },
+  deadlift: { label: 'Deadlift', base: 135, inc: 10, unit: 'lbs' },
+  latPulldown: { label: 'Lat pulldown', base: 100, inc: 5, unit: 'lbs' },
+  inclineCurl: { label: 'Incline curl', base: 17.5, inc: 2.5, unit: 'lbs' },
+  hammerCurl: { label: 'Hammer curl', base: 17.5, inc: 2.5, unit: 'lbs' },
+  cablePullThrough: { label: 'Cable pull-through', base: 80, inc: 10, unit: 'lbs' },
+  assistedPullups: { label: 'Assisted pull-ups', base: 75, inc: -5, unit: 'lbs assist' },
+}
+const TRACKED_ORDER = [
+  'hipThrust',
+  'romanianDeadlift',
+  'bulgarianSplitSquat',
+  'cableKickbacks',
+  'cableHipAbduction',
+  'deadlift',
+  'singleArmRow',
+  'latPulldown',
+  'cableRow',
+  'facePulls',
+  'benchPress',
+  'inclineCurl',
+  'hammerCurl',
+  'cablePullThrough',
+  'assistedPullups',
+]
+
+function trackedWeight(key, weightLog) {
+  const logged = weightLog[key]
+  return logged != null ? logged.weight : TRACKED[key].base
+}
+function trackedNext(key, weightLog) {
+  return trackedWeight(key, weightLog) + TRACKED[key].inc
+}
+function formatWeight(n, unit) {
+  const rounded = Math.round(n * 10) / 10
+  return `${rounded}${unit}`
+}
 
 /* ----------------------------------------------------------------------- */
 /*  Data                                                                    */
@@ -30,6 +82,14 @@ const w = (name, detail, altName, altDetail) => ({
 })
 const ex = (name, detail) => ({ name, detail })
 const rest = (label) => ({ type: 'rest', label })
+// a progressively-tracked lift — its "Current"/"Next" weight is computed
+// live from the weight log instead of baked into a static detail string
+const tracked = (name, repRange, trackKey, extra = {}) => ({
+  name,
+  repRange,
+  trackKey,
+  ...extra,
+})
 
 const DAYS = [
   {
@@ -69,8 +129,8 @@ const DAYS = [
         title: 'Superset 1',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Dumbbell bench press', '5-8 reps · Current 35lbs · Next 37.5lbs'),
-          ex('Cable row', '5-8 reps · Current 100lbs · Next 105lbs'),
+          tracked('Dumbbell bench press', '5-8 reps', 'benchPress'),
+          tracked('Cable row', '5-8 reps', 'cableRow'),
           rest('Jump rope 30 sec'),
         ],
       },
@@ -78,8 +138,8 @@ const DAYS = [
         title: 'Superset 2',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Single arm dumbbell row', '8-10 reps · Current 35lbs · Next 37.5lbs'),
-          ex('Face pulls', '10-12 reps · Current 80lbs · Next 85lbs'),
+          tracked('Single arm dumbbell row', '8-10 reps', 'singleArmRow'),
+          tracked('Face pulls', '10-12 reps', 'facePulls'),
           rest('20 high knees'),
         ],
       },
@@ -100,7 +160,12 @@ const DAYS = [
           w('Dead hang', 'Time every set · Target 30 sec minimum', 'Straight-arm band pulldown', 'Time every set · Target 30 sec minimum, no hang'),
           w('Scapular pull-ups', '3x10', 'Scapular shrugs (banded)', '3x10, standing, band anchored high'),
           w('Isometric top hold + negative', '3-5 sec hold, 8-10 sec negative · 5 reps', 'Band-assisted top hold', '3-5 sec hold only, skip loaded negative'),
-          w('Assisted pull-ups', '75lbs assist · Target 5 reps both sets', 'Lat pulldown', '75% bodyweight equivalent · Target 5 reps both sets'),
+          tracked('Assisted pull-ups', 'Target 5 reps both sets', 'assistedPullups', {
+            prefixWeight: true,
+            wrist: true,
+            altName: 'Lat pulldown',
+            altDetail: '75% bodyweight equivalent · Target 5 reps both sets',
+          }),
           ex('Current PR', '1.5 unassisted reps'),
         ],
       },
@@ -172,8 +237,8 @@ const DAYS = [
         title: 'Superset 1',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Bulgarian split squats', '8 reps each side · Current 20lbs · Next 25lbs'),
-          ex('Barbell hip thrusts', '8-12 reps · Current 90lbs · Next 100lbs'),
+          tracked('Bulgarian split squats', '8 reps each side', 'bulgarianSplitSquat'),
+          tracked('Barbell hip thrusts', '8-12 reps', 'hipThrust'),
           rest('Jump rope 30 sec'),
         ],
       },
@@ -181,8 +246,12 @@ const DAYS = [
         title: 'Superset 2',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          w('Romanian deadlift', '8-10 reps · Current 60lbs', 'Romanian deadlift with straps', '8-10 reps · Current 60lbs, straps take the grip'),
-          ex('Cable kickbacks', '12-15 reps each side · Current 80lbs · Next 85lbs'),
+          tracked('Romanian deadlift', '8-10 reps', 'romanianDeadlift', {
+            wrist: true,
+            altName: 'Romanian deadlift with straps',
+            altDetail: 'straps take the grip',
+          }),
+          tracked('Cable kickbacks', '12-15 reps each side', 'cableKickbacks'),
           rest('20 high knees'),
         ],
       },
@@ -190,7 +259,7 @@ const DAYS = [
         title: 'Superset 3',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Cable hip abduction', '12-15 reps each side · Current 70lbs'),
+          tracked('Cable hip abduction', '12-15 reps each side', 'cableHipAbduction'),
           ex('Single leg glute bridge', '15 reps each side · Bodyweight'),
           rest('10 jumping jacks'),
         ],
@@ -263,7 +332,11 @@ const DAYS = [
         title: 'Superset 1',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          w('Deadlift', '5-6 reps · Current 135lbs · Next 145lbs', 'Deadlift with straps', '5-6 reps · Current 135lbs · Next 145lbs, straps take the grip'),
+          tracked('Deadlift', '5-6 reps', 'deadlift', {
+            wrist: true,
+            altName: 'Deadlift with straps',
+            altDetail: 'straps take the grip',
+          }),
           ex('Chest supported dumbbell row', '8-10 reps · Current 35lbs'),
           rest('20 high knees'),
         ],
@@ -272,8 +345,8 @@ const DAYS = [
         title: 'Superset 2',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Single arm dumbbell row', '8-10 reps · Current 35lbs · Next 37.5lbs'),
-          ex('Lat pulldown', '8-10 reps · Current 100lbs · Next 105lbs'),
+          tracked('Single arm dumbbell row', '8-10 reps', 'singleArmRow'),
+          tracked('Lat pulldown', '8-10 reps', 'latPulldown'),
           rest('Jump rope 30 sec'),
         ],
       },
@@ -281,8 +354,12 @@ const DAYS = [
         title: 'Superset 3',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Face pulls', '10-12 reps · Current 80lbs · Next 85lbs'),
-          w('Incline dumbbell curl', '8-12 reps · Current 17.5lbs · Next 20lbs', 'Incline hammer curl (neutral grip)', '8-12 reps · Current 17.5lbs · Next 20lbs, neutral wrist'),
+          tracked('Face pulls', '10-12 reps', 'facePulls'),
+          tracked('Incline dumbbell curl', '8-12 reps', 'inclineCurl', {
+            wrist: true,
+            altName: 'Incline hammer curl (neutral grip)',
+            altDetail: 'neutral wrist',
+          }),
           rest('20 high knees'),
         ],
       },
@@ -290,8 +367,8 @@ const DAYS = [
         title: 'Superset 4',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          w('Hammer curl', '8-12 reps · Current 17.5lbs · Next 20lbs', null, null),
-          ex('Cable row', '5-8 reps · Current 100lbs · Next 105lbs'),
+          tracked('Hammer curl', '8-12 reps', 'hammerCurl'),
+          tracked('Cable row', '5-8 reps', 'cableRow'),
           rest('Jump rope 30 sec'),
         ],
       },
@@ -303,7 +380,12 @@ const DAYS = [
           w('Dead hang', 'Time every set · Target 30 sec', 'Straight-arm band pulldown', 'Time every set · Target 30 sec, no hang'),
           w('Scapular pull-ups', '3x10', 'Scapular shrugs (banded)', '3x10'),
           w('Isometric top hold + negative', '5 reps', 'Band-assisted top hold', '3-5 sec hold only, skip loaded negative'),
-          w('Assisted pull-ups', '75lbs assist · Target 5 reps both sets', 'Lat pulldown', '75% bodyweight equivalent · Target 5 reps both sets'),
+          tracked('Assisted pull-ups', 'Target 5 reps both sets', 'assistedPullups', {
+            prefixWeight: true,
+            wrist: true,
+            altName: 'Lat pulldown',
+            altDetail: '75% bodyweight equivalent · Target 5 reps both sets',
+          }),
         ],
       },
       {
@@ -459,7 +541,7 @@ const DAYS = [
         title: 'Superset 2',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Bulgarian split squat', '8 reps each side · Current 20lbs'),
+          tracked('Bulgarian split squat', '8 reps each side', 'bulgarianSplitSquat'),
           ex('Deficit step-ups', '10 reps each leg · Current 15lbs'),
           rest('Jump rope 30 sec'),
         ],
@@ -468,7 +550,7 @@ const DAYS = [
         title: 'Superset 3',
         meta: '2 sets to near failure, 30 sec active rest',
         items: [
-          ex('Cable pull-through', '12 reps · Current 80lbs · Next 90lbs'),
+          tracked('Cable pull-through', '12 reps', 'cablePullThrough'),
           ex('Standing calf raise', '15 reps · Current 15lb plate'),
           rest('20 high knees'),
         ],
@@ -581,24 +663,6 @@ const BIOMETRIC_RULES = [
       { range: 'Below 70', action: 'Downgrade one level' },
     ],
   },
-]
-
-const OVERLOAD_LOG = [
-  { exercise: 'Barbell hip thrusts', current: '90lbs', next: '100lbs' },
-  { exercise: 'Romanian deadlift', current: '60lbs', next: '65lbs' },
-  { exercise: 'Bulgarian split squat', current: '20lbs', next: '25lbs' },
-  { exercise: 'Cable kickbacks', current: '80lbs', next: '85lbs' },
-  { exercise: 'Cable hip abduction', current: '70lbs', next: '75lbs' },
-  { exercise: 'Deadlift', current: '135lbs', next: '145lbs' },
-  { exercise: 'Single arm row', current: '35lbs', next: '37.5lbs' },
-  { exercise: 'Lat pulldown', current: '100lbs', next: '105lbs' },
-  { exercise: 'Cable row', current: '100lbs', next: '105lbs' },
-  { exercise: 'Face pulls', current: '80lbs', next: '85lbs' },
-  { exercise: 'Dumbbell bench press', current: '35lbs', next: '37.5lbs' },
-  { exercise: 'Incline curl', current: '17.5lbs', next: '20lbs' },
-  { exercise: 'Hammer curl', current: '17.5lbs', next: '20lbs' },
-  { exercise: 'Cable pull-through', current: '80lbs', next: '90lbs' },
-  { exercise: 'Assisted pull-ups', current: '75lbs assist', next: '70lbs assist' },
 ]
 
 /* ----------------------------------------------------------------------- */
@@ -724,7 +788,42 @@ function DayModeToggle({ active, disabled, onToggle }) {
   )
 }
 
-function ExerciseRow({ item }) {
+function WeightLogInput({ trackKey, suggested, unit, lastLoggedAt, onLog }) {
+  const [value, setValue] = useState('')
+  const submit = () => {
+    const num = parseFloat(value)
+    if (!Number.isNaN(num)) {
+      onLog(trackKey, num)
+      setValue('')
+    }
+  }
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+      <input
+        type="number"
+        inputMode="decimal"
+        step="2.5"
+        placeholder={`${suggested}`}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        className="w-16 rounded border border-fern/25 bg-forest-deep/60 px-2 py-1 font-body text-[13px] text-ivory placeholder:text-sage/50 focus:border-gold focus:outline-none"
+      />
+      <span className="font-body text-[10px] uppercase tracking-wide text-sage">{unit}</span>
+      <button
+        onClick={submit}
+        className="rounded-full border border-gold/50 px-2.5 py-1 font-body text-[10px] uppercase tracking-wide text-gold"
+      >
+        Log
+      </button>
+      {lastLoggedAt && (
+        <span className="font-body text-[10px] text-sage">Logged {lastLoggedAt}</span>
+      )}
+    </div>
+  )
+}
+
+function ExerciseRow({ item, weightLog, onLogWeight }) {
   if (item.type === 'rest') {
     return (
       <li className="flex items-center gap-2 py-1.5 font-body text-[13px] italic text-sage">
@@ -734,9 +833,18 @@ function ExerciseRow({ item }) {
     )
   }
 
+  const trackedMeta = item.trackKey ? TRACKED[item.trackKey] : null
+  const current = trackedMeta ? trackedWeight(item.trackKey, weightLog) : null
+  const next = trackedMeta ? trackedNext(item.trackKey, weightLog) : null
+  const detail = trackedMeta
+    ? item.prefixWeight
+      ? `${formatWeight(current, trackedMeta.unit)} · ${item.repRange}`
+      : `${item.repRange} · Current ${formatWeight(current, trackedMeta.unit)} · Next ${formatWeight(next, trackedMeta.unit)}`
+    : item.detail
+
   return (
     <li className="flex items-start justify-between gap-3 border-b border-fern/10 py-2.5 last:border-none">
-      <div>
+      <div className="w-full">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-body text-[15px] text-ivory">{item.name}</span>
           {item.wrist && (
@@ -748,15 +856,22 @@ function ExerciseRow({ item }) {
             </span>
           )}
         </div>
-        {item.detail && (
-          <div className="mt-0.5 font-body text-[13px] text-sage">{item.detail}</div>
+        {detail && <div className="mt-0.5 font-body text-[13px] text-sage">{detail}</div>}
+        {trackedMeta && (
+          <WeightLogInput
+            trackKey={item.trackKey}
+            suggested={next}
+            unit={trackedMeta.unit}
+            lastLoggedAt={weightLog[item.trackKey]?.loggedAt}
+            onLog={onLogWeight}
+          />
         )}
       </div>
     </li>
   )
 }
 
-function Section({ section, defaultOpen }) {
+function Section({ section, defaultOpen, weightLog, onLogWeight }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div
@@ -796,7 +911,7 @@ function Section({ section, defaultOpen }) {
       {open && (
         <ul className="day-reveal pb-4">
           {section.items.map((item, i) => (
-            <ExerciseRow key={i} item={item} />
+            <ExerciseRow key={i} item={item} weightLog={weightLog} onLogWeight={onLogWeight} />
           ))}
         </ul>
       )}
@@ -804,7 +919,7 @@ function Section({ section, defaultOpen }) {
   )
 }
 
-function WorkoutCard({ day, mode, globalActive, onToggleDay }) {
+function WorkoutCard({ day, mode, globalActive, onToggleDay, weightLog, onLogWeight }) {
   const sections = getDaySections(day, mode)
   return (
     <div
@@ -847,7 +962,13 @@ function WorkoutCard({ day, mode, globalActive, onToggleDay }) {
 
       <div className="mt-5">
         {sections.map((section, i) => (
-          <Section key={section.title} section={section} defaultOpen={i === 0} />
+          <Section
+            key={section.title}
+            section={section}
+            defaultOpen={i === 0}
+            weightLog={weightLog}
+            onLogWeight={onLogWeight}
+          />
         ))}
       </div>
     </div>
@@ -894,13 +1015,16 @@ function BiometricPanel() {
   )
 }
 
-function OverloadTable() {
+function OverloadTable({ weightLog }) {
   return (
     <div className="rounded-2xl border border-fern/15 bg-forest-mid/60 p-5 sm:p-8">
       <p className="font-body text-xs uppercase tracking-[0.2em] text-gold">Reference</p>
       <h2 className="mt-1 font-display text-2xl font-medium text-ivory sm:text-3xl">
         Progressive overload log
       </h2>
+      <p className="mt-1 font-body text-[13px] text-sage">
+        Updates as you log weights during a workout.
+      </p>
       <div className="mt-5 overflow-x-auto">
         <table className="w-full min-w-[320px] border-collapse font-body text-[13px] sm:text-sm">
           <thead>
@@ -911,13 +1035,20 @@ function OverloadTable() {
             </tr>
           </thead>
           <tbody>
-            {OVERLOAD_LOG.map((row) => (
-              <tr key={row.exercise} className="border-b border-fern/10 last:border-none">
-                <td className="py-2.5 pr-2 text-ivory">{row.exercise}</td>
-                <td className="py-2.5 pr-2 whitespace-nowrap text-sage">{row.current}</td>
-                <td className="py-2.5 whitespace-nowrap font-medium text-gold">{row.next}</td>
-              </tr>
-            ))}
+            {TRACKED_ORDER.map((key) => {
+              const meta = TRACKED[key]
+              return (
+                <tr key={key} className="border-b border-fern/10 last:border-none">
+                  <td className="py-2.5 pr-2 text-ivory">{meta.label}</td>
+                  <td className="py-2.5 pr-2 whitespace-nowrap text-sage">
+                    {formatWeight(trackedWeight(key, weightLog), meta.unit)}
+                  </td>
+                  <td className="py-2.5 whitespace-nowrap font-medium text-gold">
+                    {formatWeight(trackedNext(key, weightLog), meta.unit)}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -951,6 +1082,14 @@ export default function App() {
     )
   })
   const [now, setNow] = useState(() => new Date())
+  const [weightLog, setWeightLog] = useState(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      return JSON.parse(localStorage.getItem(WEIGHT_LOG_KEY)) || {}
+    } catch {
+      return {}
+    }
+  })
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60 * 1000)
@@ -966,6 +1105,10 @@ export default function App() {
     dayModes.forEach((m, i) => localStorage.setItem(`${DAY_MODE_KEY_PREFIX}${i}`, m))
   }, [dayModes])
 
+  useEffect(() => {
+    localStorage.setItem(WEIGHT_LOG_KEY, JSON.stringify(weightLog))
+  }, [weightLog])
+
   const activeDayIndex = useMemo(() => DAYS.findIndex((d) => d.id === activeId), [activeId])
   const activeDay = DAYS[activeDayIndex]
   const globalActive = mode === 'calisthenics'
@@ -977,6 +1120,13 @@ export default function App() {
       next[activeDayIndex] = next[activeDayIndex] === 'weights' ? 'calisthenics' : 'weights'
       return next
     })
+  }
+
+  const logWeight = (key, weight) => {
+    setWeightLog((prev) => ({
+      ...prev,
+      [key]: { weight, loggedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) },
+    }))
   }
 
   return (
@@ -1000,9 +1150,11 @@ export default function App() {
           mode={effectiveMode}
           globalActive={globalActive}
           onToggleDay={toggleDayMode}
+          weightLog={weightLog}
+          onLogWeight={logWeight}
         />
         <BiometricPanel />
-        {effectiveMode === 'weights' && <OverloadTable />}
+        {effectiveMode === 'weights' && <OverloadTable weightLog={weightLog} />}
       </main>
 
       <footer className="px-5 py-8 text-center font-body text-[11px] uppercase tracking-widest text-sage sm:px-8">
